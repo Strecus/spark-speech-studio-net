@@ -1,14 +1,45 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Mic2, Sparkles, ArrowRight } from "lucide-react";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="container py-6 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <Mic2 className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="font-display font-bold text-xl">TED Talk Studio</span>
+        </div>
+        <Button asChild>
+          <Link to="/auth">Get Started</Link>
+        </Button>
+      </header>
+
+      <main className="flex-1 container flex flex-col items-center justify-center text-center py-16">
+        <div className="animate-fade-in max-w-2xl">
+          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-medium">AI-Powered Speech Writing</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-display font-bold mb-6 leading-tight">
+            Craft Speeches That <span className="text-primary">Inspire</span>
+          </h1>
+          <p className="text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
+            Transform your ideas into compelling TED-worthy talks with AI assistance. From topic to stage-ready script.
+          </p>
+          <Button size="lg" asChild className="gap-2">
+            <Link to="/auth">
+              Start Writing <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
+      </main>
+
+      <footer className="container py-8 text-center text-sm text-muted-foreground">
+        Ideas worth spreading start here
+      </footer>
     </div>
   );
-};
-
-export default Index;
+}
