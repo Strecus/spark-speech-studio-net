@@ -16,7 +16,8 @@ import {
   LogOut,
   MoreVertical,
   Trash2,
-  Edit3
+  Edit3,
+  Upload
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -204,12 +205,26 @@ export default function Dashboard() {
               Completed
             </Button>
           </div>
-          <Button asChild className="gap-2">
-            <Link to="/speech/new">
-              <Plus className="w-4 h-4" />
-              New Speech
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/speech/demo">
+                <Mic2 className="w-4 h-4" />
+                View Demo Speech
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/speech/upload">
+                <Upload className="w-4 h-4" />
+                Upload Speech
+              </Link>
+            </Button>
+            <Button asChild className="gap-2">
+              <Link to="/speech/new">
+                <Plus className="w-4 h-4" />
+                New Speech
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Speeches Grid */}
