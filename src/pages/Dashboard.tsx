@@ -46,16 +46,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "draft" | "completed">("all");
+  const [firstName, setFirstName] = useState<string>("Speaker");
 
   useEffect(() => {
     fetchSpeeches();
-  }, []);
+    fetchProfile();
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    const result = await (supabase
+      .from("profiles" as any)
+      .select("first_name")
+      .eq("id", user.id)
+      .single()) as { data: { first_name: string | null } | null; error: any };
+
+    if (!result.error && result.data?.first_name) {
+      setFirstName(result.data.first_name);
+    }
+  };
 
   const fetchSpeeches = async () => {
     const { data, error } = await supabase
       .from("speeches")
       .select("*")
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false }); // Newest first
 
     if (error) {
       toast({
@@ -127,7 +143,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-            Welcome back, Speaker!
+            Welcome back, {firstName}!
           </h1>
           <p className="text-muted-foreground">
             Craft compelling talks that inspire and transform your audience.

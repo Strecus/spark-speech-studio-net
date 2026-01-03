@@ -1,12 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import SpeechAnalysis from "@/components/SpeechAnalysis";
+import DemoSpeechSelector from "@/components/DemoSpeechSelector";
+import { getDemoSpeech } from "@/lib/demoSpeech";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Mic2, 
   ArrowLeft, 
@@ -16,8 +32,24 @@ import {
   FileText,
   Users,
   User,
-  Timer
+  Timer,
+  Sparkles
 } from "lucide-react";
+
+const TONES = [
+  { value: "inspiring", label: "Inspiring & Uplifting" },
+  { value: "educational", label: "Educational & Informative" },
+  { value: "storytelling", label: "Personal Storytelling" },
+  { value: "persuasive", label: "Persuasive & Call-to-Action" },
+  { value: "humorous", label: "Humorous & Engaging" },
+];
+
+const DURATIONS = [
+  { value: 5, label: "5 minutes (Lightning Talk)" },
+  { value: 10, label: "10 minutes (Short Talk)" },
+  { value: 15, label: "15 minutes (Standard TED)" },
+  { value: 18, label: "18 minutes (Classic TED)" },
+];
 
 interface Speech {
   id: string;
@@ -38,15 +70,78 @@ export default function SpeechEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [speech, setSpeech] = useState<Speech | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [pendingMarkComplete, setPendingMarkComplete] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [topic, setTopic] = useState("");
+  const [keyMessage, setKeyMessage] = useState("");
+  const [audienceDemographics, setAudienceDemographics] = useState("");
+  const [speakerBackground, setSpeakerBackground] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(15);
+  const [tone, setTone] = useState("inspiring");
+  
+  // Store original values for change detection
+  const originalValuesRef = useRef<{
+    topic: string;
+    keyMessage: string;
+    audienceDemographics: string;
+    speakerBackground: string;
+    durationMinutes: number;
+    tone: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (id) fetchSpeech();
+    if (id === "demo") {
+      // Show selector, don't load a speech yet
+      setLoading(false);
+    } else if (id?.startsWith("demo-speech-")) {
+      loadDemoSpeech(id);
+    } else if (id) {
+      fetchSpeech();
+    }
   }, [id]);
+
+  const loadDemoSpeech = (speechId: string) => {
+    const demoSpeech = getDemoSpeech(speechId);
+    if (demoSpeech) {
+      setSpeech(demoSpeech as Speech);
+      setTitle(demoSpeech.title);
+      setContent(demoSpeech.content);
+      setTopic(demoSpeech.topic);
+      setKeyMessage(demoSpeech.key_message || "");
+      setAudienceDemographics(demoSpeech.audience_demographics || "");
+      setSpeakerBackground(demoSpeech.speaker_background || "");
+      setDurationMinutes(demoSpeech.duration_minutes || 15);
+      setTone(demoSpeech.tone || "inspiring");
+      
+      // Store original values for demo speech (though demo speeches are read-only)
+      originalValuesRef.current = {
+        topic: demoSpeech.topic,
+        keyMessage: demoSpeech.key_message || "",
+        audienceDemographics: demoSpeech.audience_demographics || "",
+        speakerBackground: demoSpeech.speaker_background || "",
+        durationMinutes: demoSpeech.duration_minutes || 15,
+        tone: demoSpeech.tone || "inspiring",
+      };
+      
+      setLoading(false);
+    } else {
+      toast({
+        title: "Demo speech not found",
+        variant: "destructive",
+      });
+      navigate("/speech/demo");
+    }
+  };
+
+  const handleDemoSpeechSelect = (speechId: string) => {
+    navigate(`/speech/${speechId}`);
+  };
 
   const fetchSpeech = async () => {
     const { data, error } = await supabase
@@ -72,12 +167,157 @@ export default function SpeechEditor() {
       setSpeech(data);
       setTitle(data.title);
       setContent(data.content || "");
+      setTopic(data.topic);
+      setKeyMessage(data.key_message || "");
+      setAudienceDemographics(data.audience_demographics || "");
+      setSpeakerBackground(data.speaker_background || "");
+      setDurationMinutes(data.duration_minutes || 15);
+      setTone(data.tone || "inspiring");
+      
+      // Store original values
+      originalValuesRef.current = {
+        topic: data.topic,
+        keyMessage: data.key_message || "",
+        audienceDemographics: data.audience_demographics || "",
+        speakerBackground: data.speaker_background || "",
+        durationMinutes: data.duration_minutes || 15,
+        tone: data.tone || "inspiring",
+      };
     }
     setLoading(false);
   };
 
+  const hasDetailsChanged = (): boolean => {
+    if (!originalValuesRef.current) return false;
+    const original = originalValuesRef.current;
+    
+    return (
+      topic !== original.topic ||
+      keyMessage !== original.keyMessage ||
+      audienceDemographics !== original.audienceDemographics ||
+      speakerBackground !== original.speakerBackground ||
+      durationMinutes !== original.durationMinutes ||
+      tone !== original.tone
+    );
+  };
+
+  const handleRegenerate = async () => {
+    if (!speech || !user) return;
+    
+    setShowRegenerateDialog(false);
+    setSaving(true);
+
+    try {
+      // Call the AI edge function to regenerate speech
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-speech`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            title,
+            topic,
+            keyMessage,
+            audienceDemographics,
+            speakerBackground,
+            durationMinutes,
+            tone,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to regenerate speech");
+      }
+
+      const { content: newContent } = await response.json();
+
+      // Update with new content and all fields
+      const { error } = await supabase
+        .from("speeches")
+        .update({
+          title,
+          topic,
+          key_message: keyMessage,
+          audience_demographics: audienceDemographics,
+          speaker_background: speakerBackground,
+          duration_minutes: durationMinutes,
+          tone,
+          content: newContent,
+          status: speech.status,
+        })
+        .eq("id", speech.id);
+
+      if (error) throw error;
+
+      setContent(newContent);
+      setSpeech((prev) => prev ? {
+        ...prev,
+        topic,
+        key_message: keyMessage,
+        audience_demographics: audienceDemographics,
+        speaker_background: speakerBackground,
+        duration_minutes: durationMinutes,
+        tone,
+        content: newContent,
+      } : null);
+      
+      // Update original values
+      originalValuesRef.current = {
+        topic,
+        keyMessage,
+        audienceDemographics,
+        speakerBackground,
+        durationMinutes,
+        tone,
+      };
+
+      toast({
+        title: "Speech regenerated!",
+        description: "Your speech has been regenerated with the updated details.",
+      });
+    } catch (error: any) {
+      console.error("Error regenerating speech:", error);
+      toast({
+        title: "Regeneration failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async (markComplete = false) => {
     if (!speech) return;
+    
+    // Demo speeches are read-only
+    if (speech.id.startsWith("demo-speech-") || id?.startsWith("demo-speech-")) {
+      toast({
+        title: "Demo speech is read-only",
+        description: "This is a demo speech for testing. Create your own speech to edit and save.",
+        variant: "default",
+      });
+      return;
+    }
+    
+    // Check if details have changed
+    if (hasDetailsChanged()) {
+      setPendingMarkComplete(markComplete);
+      setShowRegenerateDialog(true);
+      return;
+    }
+
+    await performSave(markComplete);
+  };
+
+  const performSave = async (markComplete = false) => {
+    if (!speech) return;
+    
     setSaving(true);
 
     const { error } = await supabase
@@ -85,6 +325,12 @@ export default function SpeechEditor() {
       .update({
         title,
         content,
+        topic,
+        key_message: keyMessage,
+        audience_demographics: audienceDemographics,
+        speaker_background: speakerBackground,
+        duration_minutes: durationMinutes,
+        tone,
         status: markComplete ? "completed" : speech.status,
       })
       .eq("id", speech.id);
@@ -102,8 +348,24 @@ export default function SpeechEditor() {
       if (markComplete) {
         setSpeech((prev) => prev ? { ...prev, status: "completed" } : null);
       }
+      
+      // Update original values after save
+      originalValuesRef.current = {
+        topic,
+        keyMessage,
+        audienceDemographics,
+        speakerBackground,
+        durationMinutes,
+        tone,
+      };
     }
     setSaving(false);
+  };
+
+  const handleSaveWithoutRegenerate = async () => {
+    setShowRegenerateDialog(false);
+    await performSave(pendingMarkComplete);
+    setPendingMarkComplete(false);
   };
 
   const estimateWordCount = (text: string) => {
@@ -122,6 +384,11 @@ export default function SpeechEditor() {
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // Show selector if on /speech/demo route without a specific speech selected
+  if (id === "demo" && !speech) {
+    return <DemoSpeechSelector onSelect={handleDemoSpeechSelect} />;
   }
 
   if (!speech) return null;
@@ -194,23 +461,33 @@ export default function SpeechEditor() {
             </Card>
 
             {/* Actions */}
-            <div className="flex flex-wrap gap-3 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <Button onClick={() => handleSave(false)} disabled={saving}>
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-              {speech.status !== "completed" && (
-                <Button
-                  variant="outline"
-                  onClick={() => handleSave(true)}
-                  disabled={saving}
-                  className="border-success text-success hover:bg-success hover:text-success-foreground"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark as Complete
+            {speech.id.startsWith("demo-speech-") || id?.startsWith("demo-speech-") ? (
+              <Card className="shadow-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground text-center">
+                    This is a demo speech for testing the analysis feature. Create your own speech to edit and save.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="flex flex-wrap gap-3 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                <Button onClick={() => handleSave(false)} disabled={saving}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
-              )}
-            </div>
+                {speech.status !== "completed" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSave(true)}
+                    disabled={saving}
+                    className="border-success text-success hover:bg-success hover:text-success-foreground"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -231,10 +508,15 @@ export default function SpeechEditor() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">Target Duration</span>
-                  <span className="font-medium">{speech.duration_minutes} min</span>
+                  <span className="font-medium">{durationMinutes} min</span>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Speech Analysis */}
+            {!speech.id.startsWith("demo-speech-") && id && !id.startsWith("demo-speech-") ? (
+              <SpeechAnalysis speechId={speech.id} speechContent={content} />
+            ) : null}
 
             {/* Speech Details */}
             <Card className="shadow-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
@@ -242,54 +524,129 @@ export default function SpeechEditor() {
                 <CardTitle className="text-sm font-medium">Speech Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
-                <div>
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
                     <FileText className="w-3 h-3" />
                     Topic
-                  </div>
-                  <p>{speech.topic}</p>
+                  </Label>
+                  <Input
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="Speech topic"
+                    className="h-9 text-sm"
+                  />
                 </div>
-                {speech.key_message && (
-                  <div>
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Mic2 className="w-3 h-3" />
-                      Key Message
-                    </div>
-                    <p>{speech.key_message}</p>
-                  </div>
-                )}
-                {speech.audience_demographics && (
-                  <div>
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Users className="w-3 h-3" />
-                      Audience
-                    </div>
-                    <p className="line-clamp-3">{speech.audience_demographics}</p>
-                  </div>
-                )}
-                {speech.speaker_background && (
-                  <div>
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <User className="w-3 h-3" />
-                      Speaker Background
-                    </div>
-                    <p className="line-clamp-3">{speech.speaker_background}</p>
-                  </div>
-                )}
-                <div>
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Mic2 className="w-3 h-3" />
+                    Key Message
+                  </Label>
+                  <Textarea
+                    value={keyMessage}
+                    onChange={(e) => setKeyMessage(e.target.value)}
+                    placeholder="Key message (optional)"
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Users className="w-3 h-3" />
+                    Audience
+                  </Label>
+                  <Textarea
+                    value={audienceDemographics}
+                    onChange={(e) => setAudienceDemographics(e.target.value)}
+                    placeholder="Audience demographics"
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <User className="w-3 h-3" />
+                    Speaker Background
+                  </Label>
+                  <Textarea
+                    value={speakerBackground}
+                    onChange={(e) => setSpeakerBackground(e.target.value)}
+                    placeholder="Speaker background"
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
                     <Timer className="w-3 h-3" />
                     Tone
-                  </div>
-                  <Badge variant="secondary" className="capitalize">
-                    {speech.tone}
-                  </Badge>
+                  </Label>
+                  <Select value={tone} onValueChange={setTone}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TONES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Clock className="w-3 h-3" />
+                    Target Duration
+                  </Label>
+                  <Select
+                    value={durationMinutes.toString()}
+                    onValueChange={(v) => setDurationMinutes(parseInt(v))}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATIONS.map((d) => (
+                        <SelectItem key={d.value} value={d.value.toString()}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
+
+      {/* Re-generate Dialog */}
+      <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate Speech with AI?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've changed the speech details (topic, audience, duration, tone, etc.). 
+              Would you like to regenerate the speech content with AI to match these new details?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleSaveWithoutRegenerate}
+            >
+              No, Save Changes Only
+            </Button>
+            <AlertDialogAction
+              onClick={handleRegenerate}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Yes, Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

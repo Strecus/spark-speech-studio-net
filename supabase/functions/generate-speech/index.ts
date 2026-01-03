@@ -13,12 +13,12 @@ serve(async (req) => {
   try {
     const { title, topic, keyMessage, audienceDemographics, speakerBackground, durationMinutes, tone } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
-    const systemPrompt = `You are an expert TED talk speechwriter. Create compelling, authentic speeches that inspire audiences. Structure with a strong hook, clear narrative arc, and memorable conclusion. Use storytelling, rhetorical devices, and emotional connection. Match the requested tone and duration.`;
+    const prompt = `You are an expert TED talk speechwriter. Create compelling, authentic speeches that inspire audiences. Structure with a strong hook, clear narrative arc, and memorable conclusion. Use storytelling, rhetorical devices, and emotional connection. Match the requested tone and duration.
 
-    const userPrompt = `Write a ${durationMinutes}-minute TED-style speech with the following details:
+Write a ${durationMinutes}-minute TED-style speech with the following details:
 
 **Title:** ${title}
 **Topic:** ${topic}
@@ -35,24 +35,30 @@ Create a complete speech draft with:
 
 Write naturally as if the speaker is delivering it live. Aim for approximately ${durationMinutes * 130} words.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          {
+            role: "system",
+            content: "You are an expert TED talk speechwriter. Create compelling, authentic speeches that inspire audiences. Structure with a strong hook, clear narrative arc, and memorable conclusion. Use storytelling, rhetorical devices, and emotional connection. Match the requested tone and duration.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
         ],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },

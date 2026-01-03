@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SpeechCreate from "./pages/SpeechCreate";
+import SpeechUpload from "./pages/SpeechUpload";
 import SpeechEditor from "./pages/SpeechEditor";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/speech/new" element={<ProtectedRoute><SpeechCreate /></ProtectedRoute>} />
+            <Route path="/speech/upload" element={<ProtectedRoute><SpeechUpload /></ProtectedRoute>} />
             <Route path="/speech/:id" element={<ProtectedRoute><SpeechEditor /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

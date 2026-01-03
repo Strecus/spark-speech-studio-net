@@ -12,6 +12,7 @@ import { Mic2, Sparkles } from "lucide-react";
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,8 +20,10 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session) {
+        if (session && event === "SIGNED_IN") {
           navigate("/dashboard");
+        } else if (event === "TOKEN_REFRESHED" && session) {
+          // Session refreshed, user still logged in
         }
       }
     );
@@ -38,16 +41,31 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
+      // Check for email verification errors
+      if (error.message.includes("Email not confirmed") || error.message.includes("email_not_confirmed")) {
+        toast({
+          title: "Email not verified",
+          description: "Please check your email and click the verification link before logging in.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } else if (data.session) {
+      // Login successful - navigation happens via auth state change
       toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Welcome back!",
+        description: "Successfully logged in.",
       });
     }
     setLoading(false);
@@ -59,16 +77,19 @@ export default function Auth() {
 
     const redirectUrl = `${window.location.origin}/dashboard`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
+        data: {
+          first_name: firstName,
+        },
       },
     });
 
     if (error) {
-      if (error.message.includes("already registered")) {
+      if (error.message.includes("already registered") || error.message.includes("already been registered")) {
         toast({
           title: "Account exists",
           description: "This email is already registered. Please log in instead.",
@@ -82,10 +103,19 @@ export default function Auth() {
         });
       }
     } else {
-      toast({
-        title: "Welcome aboard!",
-        description: "Your account has been created. You're now logged in.",
-      });
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        toast({
+          title: "Check your email",
+          description: "We've sent you a confirmation email. Please verify your email address before logging in.",
+        });
+      } else {
+        toast({
+          title: "Welcome aboard!",
+          description: "Your account has been created. You're now logged in.",
+        });
+        navigate("/dashboard");
+      }
     }
     setLoading(false);
   };
@@ -152,6 +182,17 @@ export default function Auth() {
 
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-firstname">First Name</Label>
+                  <Input
+                    id="signup-firstname"
+                    type="text"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

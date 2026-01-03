@@ -77,7 +77,7 @@ export default function SpeechCreate() {
     setGenerating(true);
 
     try {
-      // Call the AI edge function to generate speech
+      // Call the AI edge function to generate speech content
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-speech`,
         {
@@ -104,7 +104,7 @@ export default function SpeechCreate() {
       }
 
       const { content } = await response.json();
-
+      
       // Save to database
       const { data, error } = await supabase
         .from("speeches")
@@ -127,14 +127,14 @@ export default function SpeechCreate() {
 
       toast({
         title: "Speech generated!",
-        description: "Your AI-powered draft is ready for review.",
+        description: "Your AI-powered draft is ready. You can edit it from the dashboard.",
       });
 
-      navigate(`/speech/${data.id}`);
+      navigate("/dashboard");
     } catch (error: any) {
-      console.error("Error generating speech:", error);
+      console.error("Error creating speech:", error);
       toast({
-        title: "Generation failed",
+        title: "Creation failed",
         description: error.message || "Please try again later.",
         variant: "destructive",
       });
