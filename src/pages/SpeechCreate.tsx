@@ -101,7 +101,7 @@ export default function SpeechCreate() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
         throw new Error(errorData.error || "Failed to generate speech");
       }
 
