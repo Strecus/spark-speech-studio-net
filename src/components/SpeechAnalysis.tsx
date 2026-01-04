@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Brain, Heart, Shield, TrendingUp, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AnalysisData {
   id: string;
@@ -24,6 +25,7 @@ interface SpeechAnalysisProps {
 
 export default function SpeechAnalysis({ speechId, speechContent }: SpeechAnalysisProps) {
   const { toast } = useToast();
+  const { session } = useAuth();
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -67,13 +69,14 @@ export default function SpeechAnalysis({ speechId, speechContent }: SpeechAnalys
     setAnalyzing(true);
     try {
       // Call the AI analysis edge function
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-speech`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
