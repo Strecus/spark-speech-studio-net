@@ -20,12 +20,12 @@ serve(async (req) => {
 
 Write a ${durationMinutes}-minute TED-style speech with the following details:
 
-**Title:** ${title}
-**Topic:** ${topic}
-${keyMessage ? `**Key Message:** ${keyMessage}` : ""}
-**Target Audience:** ${audienceDemographics}
-**Speaker Background:** ${speakerBackground}
-**Tone:** ${tone}
+Title: ${title}
+Topic: ${topic}
+${keyMessage ? `Key Message: ${keyMessage}` : ""}
+Target Audience: ${audienceDemographics}
+Speaker Background: ${speakerBackground}
+Tone: ${tone}
 
 Create a complete speech draft with:
 1. A captivating opening hook
@@ -33,7 +33,12 @@ Create a complete speech draft with:
 3. Clear main points with transitions
 4. A powerful, memorable conclusion
 
-Write naturally as if the speaker is delivering it live. Aim for approximately ${durationMinutes * 130} words.`;
+IMPORTANT FORMATTING REQUIREMENTS:
+- Do NOT use any text styling (no markdown, no bold, no italics, no asterisks, no underscores)
+- Use blank lines (double line breaks) to separate sections
+- Write in plain text only - the speech will be copied and pasted, so avoid any formatting characters
+- Write naturally as if the speaker is delivering it live
+- Aim for approximately ${durationMinutes * 130} words`;
 
     // Use gpt-3.5-turbo for faster generation (about 2-3x faster than gpt-4o-mini)
     // Calculate approximate word count target
