@@ -72,42 +72,128 @@ export default function SpeechCreate() {
   };
 
   const handleGenerate = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to generate a speech.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate environment variables
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing environment variables:", {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+      });
+      toast({
+        title: "Configuration error",
+        description: "Missing Supabase configuration. Please check your environment variables.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setGenerating(true);
 
     try {
-      // Call the AI edge function to generate speech content
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-speech`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            title: formData.title,
-            topic: formData.topic,
-            keyMessage: formData.keyMessage,
-            audienceDemographics: formData.audienceDemographics,
-            speakerBackground: formData.speakerBackground,
-            durationMinutes: formData.durationMinutes,
-            tone: formData.tone,
-          }),
-        }
-      );
+      const requestBody = {
+        title: formData.title,
+        topic: formData.topic,
+        keyMessage: formData.keyMessage,
+        audienceDemographics: formData.audienceDemographics,
+        speakerBackground: formData.speakerBackground,
+        durationMinutes: formData.durationMinutes,
+        tone: formData.tone,
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || "Failed to generate speech");
+      // Validate required fields
+      if (!formData.title || !formData.topic) {
+        throw new Error("Title and topic are required");
       }
 
-      const { content } = await response.json();
+      // Use the same approach as analyze-speech which works
+      // Try anon key first since session token is being rejected
+      const functionUrl = `${supabaseUrl}/functions/v1/generate-speech`;
+      // Use anon key instead of session token - session token is causing "Invalid JWT"
+      const token = supabaseKey;
+      
+      console.log("Calling generate-speech function (using anon key):", {
+        url: functionUrl,
+        hasSession: !!session,
+        usingToken: "anon key",
+        body: requestBody,
+      });
+
+      const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: supabaseKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("Response status:", response.status, response.statusText);
+
+      // Get response text first to handle both JSON and text errors
+      const responseText = await response.text();
+      console.log("Response body:", responseText);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText || `HTTP ${response.status}: ${response.statusText}` };
+        }
+
+        console.error("Error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
+
+        let errorMessage = "Failed to generate speech";
+        if (response.status === 401) {
+          const errorMsg = errorData.message || errorData.error || "Invalid JWT";
+          errorMessage = `Authentication failed (401): ${errorMsg}. The generate-speech function may not be deployed to Supabase or requires different permissions. Please check your Supabase Edge Functions dashboard and ensure the function is deployed.`;
+        } else if (response.status === 404) {
+          errorMessage = "Function not found (404). Please ensure the generate-speech Edge Function is deployed to Supabase using: supabase functions deploy generate-speech";
+        } else if (response.status === 500) {
+          errorMessage = errorData.error || errorData.message || "Server error occurred while generating speech.";
+        } else {
+          errorMessage = errorData.error || errorData.message || `Request failed with status ${response.status}`;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Parse successful response
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+
+      if (!responseData.content) {
+        console.error("Response missing content:", responseData);
+        throw new Error("Response did not contain speech content");
+      }
+
+      const { content } = responseData;
+      
+      console.log("Speech content received, length:", content?.length || 0);
       
       // Save to database
+      console.log("Saving speech to database...");
       const { data, error } = await supabase
         .from("speeches")
         .insert({
@@ -125,7 +211,16 @@ export default function SpeechCreate() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw new Error(`Failed to save speech: ${error.message || "Database error"}`);
+      }
+
+      if (!data) {
+        throw new Error("Speech was created but no data was returned");
+      }
+
+      console.log("Speech saved successfully:", data.id);
 
       toast({
         title: "Speech generated!",
@@ -134,10 +229,25 @@ export default function SpeechCreate() {
 
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Error creating speech:", error);
+      console.error("Error creating speech:", {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+      });
+      
+      let errorMessage = "Please try again later.";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error?.error) {
+        errorMessage = error.error;
+      }
+
       toast({
         title: "Creation failed",
-        description: error.message || "Please try again later.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

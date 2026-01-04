@@ -1,0 +1,3 @@
+[functions.generate-speech]
+verify_jwt = false
+
