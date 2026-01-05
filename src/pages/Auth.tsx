@@ -99,7 +99,9 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/auth`;
+    
+    console.log("🔍 Sign-up attempt:", { email, redirectUrl });
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -112,7 +114,16 @@ export default function Auth() {
       },
     });
 
+    console.log("📧 Sign-up response:", { 
+      hasUser: !!data.user, 
+      hasSession: !!data.session,
+      userConfirmed: data.user?.email_confirmed_at ? true : false,
+      userEmail: data.user?.email,
+      error: error ? { message: error.message, status: error.status, code: error.code } : null
+    });
+
     if (error) {
+      console.error("❌ Sign-up error:", error);
       // Check for duplicate email errors - Supabase returns various error messages/codes for this
       const errorMessage = error.message.toLowerCase();
       
@@ -139,17 +150,70 @@ export default function Auth() {
     } else {
       // Check if email confirmation is required
       if (data.user && !data.session) {
+        console.log("✅ User created but needs email confirmation");
+        console.log("📧 User details:", {
+          id: data.user.id,
+          email: data.user.email,
+          confirmed: data.user.email_confirmed_at,
+          createdAt: data.user.created_at
+        });
         toast({
           title: "Check your email",
-          description: "We've sent you a confirmation email. Please verify your email address before logging in.",
+          description: "We've sent you a confirmation email. Please verify your email address before logging in. Check your spam folder if you don't see it.",
         });
-      } else {
+      } else if (data.user && data.session) {
+        console.log("✅ User created and logged in (email confirmation disabled?)");
         toast({
           title: "Welcome aboard!",
           description: "Your account has been created. You're now logged in.",
         });
         navigate("/dashboard");
+      } else {
+        console.warn("⚠️ Unexpected response: no user and no error");
+        toast({
+          title: "Sign up completed",
+          description: "Please check your email for a confirmation link.",
+        });
       }
+    }
+    setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    console.log("🔄 Resending verification email to:", email);
+
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth`,
+      },
+    });
+
+    console.log("📧 Resend response:", { data, error });
+
+    if (error) {
+      console.error("❌ Resend error:", error);
+      toast({
+        title: "Failed to resend email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Email sent",
+        description: "We've sent you a new confirmation email. Please check your inbox (and spam folder).",
+      });
     }
     setLoading(false);
   };
@@ -384,6 +448,16 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating account..." : "Create Account"}
                 </Button>
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+                    disabled={loading || !email}
+                  >
+                    Didn't receive the email? Resend verification
+                  </button>
+                </div>
               </form>
             </TabsContent>
           </CardContent>
