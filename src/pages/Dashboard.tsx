@@ -126,7 +126,7 @@ export default function Dashboard() {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <Mic2 className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-xl">TED Talk Studio</span>
+            <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">

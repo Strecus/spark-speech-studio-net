@@ -303,7 +303,7 @@ export default function Auth() {
           </div>
         </div>
         <h1 className="text-3xl font-display font-bold text-foreground">
-          TED Talk Studio
+          Ready Speaker One Talk Studio
         </h1>
         <p className="text-muted-foreground mt-2 flex items-center justify-center gap-1">
           <Sparkles className="w-4 h-4" />
@@ -467,7 +467,7 @@ export default function Auth() {
 
       {/* Footer */}
       <p className="mt-8 text-sm text-muted-foreground text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
-        Ideas worth spreading start here
+        Ready to speak with confidence
       </p>
 
       {/* Password Reset Dialog */}

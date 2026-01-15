@@ -10,7 +10,7 @@ export default function Index() {
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <Mic2 className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-display font-bold text-xl">TED Talk Studio</span>
+          <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
         </div>
         <Button asChild>
           <Link to="/auth">Get Started</Link>
@@ -27,7 +27,7 @@ export default function Index() {
             Craft Speeches That <span className="text-primary">Inspire</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
-            Transform your ideas into compelling TED-worthy talks with AI assistance. From topic to stage-ready script.
+            Transform your ideas into compelling, stage-ready presentations with AI assistance. From topic to polished script.
           </p>
           <Button size="lg" asChild className="gap-2">
             <Link to="/auth">
@@ -38,7 +38,7 @@ export default function Index() {
       </main>
 
       <footer className="container py-8 text-center text-sm text-muted-foreground">
-        Ideas worth spreading start here
+        Ready to speak with confidence
       </footer>
     </div>
   );
