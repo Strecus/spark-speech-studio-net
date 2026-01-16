@@ -402,9 +402,11 @@ export default function SpeechEditor() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Mic2 className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/ReadySpeakerOne-logo.webp" 
+                alt="Ready Speaker One" 
+                className="h-10 w-auto"
+              />
               <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
             </Link>
           </div>

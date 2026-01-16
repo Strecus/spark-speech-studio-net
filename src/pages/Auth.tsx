@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Mic2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -298,9 +298,11 @@ export default function Auth() {
       {/* Header */}
       <div className="mb-8 text-center animate-fade-in">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <Mic2 className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src="/ReadySpeakerOne-logo.webp" 
+            alt="Ready Speaker One" 
+            className="h-12 w-auto"
+          />
         </div>
         <h1 className="text-3xl font-display font-bold text-foreground">
           Ready Speaker One Talk Studio

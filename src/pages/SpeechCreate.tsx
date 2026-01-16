@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mic2, ArrowLeft, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const STEPS = [
@@ -262,9 +262,11 @@ export default function SpeechCreate() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Mic2 className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/ReadySpeakerOne-logo.webp" 
+                alt="Ready Speaker One" 
+                className="h-10 w-auto"
+              />
               <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
             </Link>
           </div>
