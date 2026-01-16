@@ -407,7 +407,7 @@ export default function SpeechEditor() {
                 alt="Ready Speaker One" 
                 className="h-10 w-auto"
               />
-              <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
+              <span className="font-display font-bold text-xl">Talk Studio</span>
             </Link>
           </div>
           <div className="flex items-center gap-2">

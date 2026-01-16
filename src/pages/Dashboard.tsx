@@ -128,7 +128,7 @@ export default function Dashboard() {
               alt="Ready Speaker One" 
               className="h-10 w-auto"
             />
-            <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
+            <span className="font-display font-bold text-xl">Talk Studio</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">

@@ -205,7 +205,7 @@ export default function SpeechUpload() {
                 alt="Ready Speaker One" 
                 className="h-10 w-auto"
               />
-              <span className="font-display font-bold text-xl">Ready Speaker One Talk Studio</span>
+              <span className="font-display font-bold text-xl">Talk Studio</span>
             </Link>
           </div>
           <Button variant="ghost" asChild>
