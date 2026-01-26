@@ -26,40 +26,78 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check URL hash for password recovery token on mount
+    // Check URL hash for password recovery or email confirmation tokens on mount
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get("type") === "recovery") {
+    const type = hashParams.get("type");
+    
+    if (type === "recovery") {
       setShowPasswordUpdate(true);
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("🔔 Auth state change:", { event, hasSession: !!session });
+        
         if (event === "PASSWORD_RECOVERY") {
           // User is trying to reset password - show password update form
           setShowPasswordUpdate(true);
-        } else if (session && event === "SIGNED_IN") {
-          // Don't navigate if we're in password recovery mode
+        } else if (event === "SIGNED_IN" && session) {
+          // Check if this is from email confirmation
           const currentHashParams = new URLSearchParams(window.location.hash.substring(1));
-          if (currentHashParams.get("type") !== "recovery") {
-            navigate("/dashboard");
+          const hashType = currentHashParams.get("type");
+          
+          if (hashType === "recovery") {
+            // Don't navigate if we're in password recovery mode
+            return;
           }
+          
+          // Email confirmation successful
+          if (hashType === "signup" || hashType === "email_change" || hashType === "invite") {
+            console.log("✅ Email confirmed via link");
+            toast({
+              title: "Email verified!",
+              description: "Your email has been confirmed. You're now logged in.",
+            });
+            // Clear the hash from URL
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+          
+          // Navigate to dashboard after successful sign in
+          navigate("/dashboard");
         } else if (event === "TOKEN_REFRESHED" && session) {
           // Session refreshed, user still logged in
         }
       }
     );
 
+    // Check for existing session and handle email confirmation on page load
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashType = hashParams.get("type");
+      
       if (session) {
-        const currentHashParams = new URLSearchParams(window.location.hash.substring(1));
-        if (currentHashParams.get("type") !== "recovery") {
-          navigate("/dashboard");
+        if (hashType === "recovery") {
+          // Don't navigate if we're in password recovery mode
+          return;
         }
+        
+        // If there's a hash with type, it might be email confirmation
+        if (hashType && (hashType === "signup" || hashType === "email_change" || hashType === "invite")) {
+          console.log("✅ Email confirmation detected on page load");
+          toast({
+            title: "Email verified!",
+            description: "Your email has been confirmed. Welcome!",
+          });
+          // Clear the hash
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        
+        navigate("/dashboard");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +139,27 @@ export default function Auth() {
 
     const redirectUrl = `${window.location.origin}/auth`;
     
-    console.log("🔍 Sign-up attempt:", { email, redirectUrl });
+    // Check if email already exists before attempting signup
+    try {
+      const { data: emailExists, error: functionError } = await supabase.rpc('check_email_exists', {
+        check_email: email
+      });
+      
+      if (!functionError && emailExists === true) {
+        toast({
+          title: "Email already registered",
+          description: "An account with this email already exists. Please log in instead, or use the 'Forgot Password?' link to reset your password.",
+          variant: "destructive",
+        });
+        setEmail("");
+        setPassword("");
+        setFirstName("");
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      // If function doesn't exist yet, continue with signup and check after
+    }
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -114,32 +172,29 @@ export default function Auth() {
       },
     });
 
-    console.log("📧 Sign-up response:", { 
-      hasUser: !!data.user, 
-      hasSession: !!data.session,
-      userConfirmed: data.user?.email_confirmed_at ? true : false,
-      userEmail: data.user?.email,
-      error: error ? { message: error.message, status: error.status, code: error.code } : null
-    });
-
     if (error) {
       console.error("❌ Sign-up error:", error);
-      // Check for duplicate email errors - Supabase returns various error messages/codes for this
+      // Check for duplicate email errors
       const errorMessage = error.message.toLowerCase();
+      const errorCode = error.code || "";
       
-      if (
+      const isDuplicateEmail = 
         errorMessage.includes("already registered") ||
-        errorMessage.includes("already been registered") ||
         errorMessage.includes("user already registered") ||
         errorMessage.includes("email address has already been registered") ||
-        error.code === "signup_disabled" ||
-        error.status === 422
-      ) {
+        errorCode === "user_already_registered" ||
+        errorCode === "email_address_already_registered" ||
+        error.status === 422;
+      
+      if (isDuplicateEmail) {
         toast({
           title: "Email already registered",
           description: "An account with this email already exists. Please log in instead, or use the 'Forgot Password?' link to reset your password.",
           variant: "destructive",
         });
+        setEmail("");
+        setPassword("");
+        setFirstName("");
       } else {
         toast({
           title: "Sign up failed",
@@ -147,34 +202,75 @@ export default function Auth() {
           variant: "destructive",
         });
       }
-    } else {
-      // Check if email confirmation is required
-      if (data.user && !data.session) {
-        console.log("✅ User created but needs email confirmation");
-        console.log("📧 User details:", {
-          id: data.user.id,
-          email: data.user.email,
-          confirmed: data.user.email_confirmed_at,
-          createdAt: data.user.created_at
+    } else if (data.user) {
+      // Check if email already exists (double-check after signup)
+      try {
+        const { data: emailExists } = await supabase.rpc('check_email_exists', {
+          check_email: email
         });
+        
+        // If email exists, check if it's a different user or already registered
+        if (emailExists === true) {
+          const { data: existingProfiles } = await supabase
+            .from("profiles")
+            .select("id, registered")
+            .eq("email", email)
+            .limit(1);
+          
+          if (existingProfiles && existingProfiles.length > 0) {
+            const profile = existingProfiles[0];
+            // If profile ID doesn't match OR profile is registered, it's a duplicate
+            if (profile.id !== data.user.id || profile.registered === true) {
+              toast({
+                title: "Email already registered",
+                description: "An account with this email already exists. Please log in instead, or use the 'Forgot Password?' link to reset your password.",
+                variant: "destructive",
+              });
+              setEmail("");
+              setPassword("");
+              setFirstName("");
+              setLoading(false);
+              return;
+            }
+          }
+        }
+        
+        // If email is already confirmed, user already exists
+        if (data.user.email_confirmed_at) {
+          toast({
+            title: "Email already registered",
+            description: "An account with this email already exists. Please log in instead.",
+            variant: "destructive",
+          });
+          setEmail("");
+          setPassword("");
+          setFirstName("");
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error("❌ Error checking duplicate:", err);
+      }
+      
+      // New user - send confirmation email
+      if (!data.session) {
         toast({
           title: "Check your email",
           description: "We've sent you a confirmation email. Please verify your email address before logging in. Check your spam folder if you don't see it.",
         });
-      } else if (data.user && data.session) {
-        console.log("✅ User created and logged in (email confirmation disabled?)");
+      } else {
+        // User created and logged in (email confirmation disabled)
         toast({
           title: "Welcome aboard!",
           description: "Your account has been created. You're now logged in.",
         });
         navigate("/dashboard");
-      } else {
-        console.warn("⚠️ Unexpected response: no user and no error");
-        toast({
-          title: "Sign up completed",
-          description: "Please check your email for a confirmation link.",
-        });
       }
+    } else {
+      toast({
+        title: "Sign up completed",
+        description: "Please check your email for a confirmation link.",
+      });
     }
     setLoading(false);
   };

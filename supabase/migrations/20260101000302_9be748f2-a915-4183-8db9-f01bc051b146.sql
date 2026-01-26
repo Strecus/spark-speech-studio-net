@@ -22,22 +22,22 @@ ALTER TABLE public.speeches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own speeches" 
 ON public.speeches 
 FOR SELECT 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can create their own speeches" 
 ON public.speeches 
 FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update their own speeches" 
 ON public.speeches 
 FOR UPDATE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete their own speeches" 
 ON public.speeches 
 FOR DELETE 
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 -- Create function to update timestamps
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

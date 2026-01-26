@@ -28,7 +28,7 @@ USING (
   EXISTS (
     SELECT 1 FROM public.speeches
     WHERE speeches.id = analyses.speech_id
-    AND speeches.user_id = auth.uid()
+    AND speeches.user_id = (select auth.uid())
   )
 );
 
@@ -40,7 +40,7 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.speeches
     WHERE speeches.id = analyses.speech_id
-    AND speeches.user_id = auth.uid()
+    AND speeches.user_id = (select auth.uid())
   )
 );
 
@@ -52,14 +52,14 @@ USING (
   EXISTS (
     SELECT 1 FROM public.speeches
     WHERE speeches.id = analyses.speech_id
-    AND speeches.user_id = auth.uid()
+    AND speeches.user_id = (select auth.uid())
   )
 )
 WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.speeches
     WHERE speeches.id = analyses.speech_id
-    AND speeches.user_id = auth.uid()
+    AND speeches.user_id = (select auth.uid())
   )
 );
 
@@ -71,7 +71,7 @@ USING (
   EXISTS (
     SELECT 1 FROM public.speeches
     WHERE speeches.id = analyses.speech_id
-    AND speeches.user_id = auth.uid()
+    AND speeches.user_id = (select auth.uid())
   )
 );
 

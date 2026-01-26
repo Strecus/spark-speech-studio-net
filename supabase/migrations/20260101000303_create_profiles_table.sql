@@ -16,17 +16,17 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own profile" 
 ON public.profiles 
 FOR SELECT 
-USING (auth.uid() = id);
+USING ((select auth.uid()) = id);
 
 CREATE POLICY "Users can update their own profile" 
 ON public.profiles 
 FOR UPDATE 
-USING (auth.uid() = id);
+USING ((select auth.uid()) = id);
 
 CREATE POLICY "Users can insert their own profile" 
 ON public.profiles 
 FOR INSERT 
-WITH CHECK (auth.uid() = id);
+WITH CHECK ((select auth.uid()) = id);
 
 -- Create function to automatically create profile on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -36,7 +36,7 @@ BEGIN
   VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create trigger to call function when new user signs up
 CREATE TRIGGER on_auth_user_created

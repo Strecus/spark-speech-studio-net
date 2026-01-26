@@ -1,8 +1,4 @@
--- Add first_name column to profiles table
-ALTER TABLE public.profiles
-ADD COLUMN IF NOT EXISTS first_name TEXT;
-
--- Update the trigger function to use first_name from metadata
+-- Fix handle_new_user function to set search_path (security best practice)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -16,13 +12,3 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- Update existing users to have first_name = 'Charles'
-UPDATE public.profiles
-SET first_name = 'Charles'
-WHERE first_name IS NULL OR first_name = '';
-
-
-
-
-
