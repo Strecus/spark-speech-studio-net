@@ -2,9 +2,5 @@
   command = "npm run build"
   publish = "dist"
 
-[[redirects]]
-  from = "/*"
-  to = "https://rs1.netlify.app/:splat"
-  status = 301
-  force = true
+
 
