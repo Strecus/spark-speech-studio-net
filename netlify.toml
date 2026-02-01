@@ -4,5 +4,7 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200
+  to = "https://rs1.netlify.app/:splat"
+  status = 301
+  force = true
+
