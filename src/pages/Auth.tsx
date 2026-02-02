@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
 
+// Capture hash type immediately - Supabase clears it when parsing, so we must read before any auth calls
+const getInitialHashType = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    return new URLSearchParams(window.location.hash.substring(1)).get("type");
+  } catch {
+    return null;
+  }
+};
+
 export default function Auth() {
+  const hashTypeRef = useRef(getInitialHashType());
+  const isPasswordRecovery = hashTypeRef.current === "recovery";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -18,7 +31,7 @@ export default function Auth() {
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [showPasswordUpdate, setShowPasswordUpdate] = useState(false);
+  const [showPasswordUpdate, setShowPasswordUpdate] = useState(isPasswordRecovery);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatePasswordLoading, setUpdatePasswordLoading] = useState(false);
@@ -26,72 +39,41 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check URL hash for password recovery or email confirmation tokens on mount
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get("type");
-    
-    if (type === "recovery") {
-      setShowPasswordUpdate(true);
-    }
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("🔔 Auth state change:", { event, hasSession: !!session });
-        
         if (event === "PASSWORD_RECOVERY") {
-          // User is trying to reset password - show password update form
           setShowPasswordUpdate(true);
         } else if (event === "SIGNED_IN" && session) {
-          // Check if this is from email confirmation
-          const currentHashParams = new URLSearchParams(window.location.hash.substring(1));
-          const hashType = currentHashParams.get("type");
-          
-          if (hashType === "recovery") {
-            // Don't navigate if we're in password recovery mode
+          // Use captured hash type - URL hash may already be cleared by Supabase
+          if (hashTypeRef.current === "recovery") {
+            setShowPasswordUpdate(true);
             return;
           }
-          
-          // Email confirmation successful
-          if (hashType === "signup" || hashType === "email_change" || hashType === "invite") {
-            console.log("✅ Email confirmed via link");
+          if (hashTypeRef.current === "signup" || hashTypeRef.current === "email_change" || hashTypeRef.current === "invite") {
             toast({
               title: "Email verified!",
               description: "Your email has been confirmed. You're now logged in.",
             });
-            // Clear the hash from URL
             window.history.replaceState(null, "", window.location.pathname);
           }
-          
-          // Navigate to dashboard after successful sign in
           navigate("/dashboard");
-        } else if (event === "TOKEN_REFRESHED" && session) {
-          // Session refreshed, user still logged in
         }
       }
     );
 
-    // Check for existing session and handle email confirmation on page load
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const hashType = hashParams.get("type");
-      
       if (session) {
-        if (hashType === "recovery") {
-          // Don't navigate if we're in password recovery mode
+        if (hashTypeRef.current === "recovery") {
+          setShowPasswordUpdate(true);
           return;
         }
-        
-        // If there's a hash with type, it might be email confirmation
-        if (hashType && (hashType === "signup" || hashType === "email_change" || hashType === "invite")) {
-          console.log("✅ Email confirmation detected on page load");
+        if (hashTypeRef.current === "signup" || hashTypeRef.current === "email_change" || hashTypeRef.current === "invite") {
           toast({
             title: "Email verified!",
             description: "Your email has been confirmed. Welcome!",
           });
-          // Clear the hash
           window.history.replaceState(null, "", window.location.pathname);
         }
-        
         navigate("/dashboard");
       }
     });
