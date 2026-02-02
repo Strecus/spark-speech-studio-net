@@ -11,8 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
 
 // Email instructions shown in password reset and signup flows
-const EMAIL_FROM_NOTE =
-  "From rso@superchico.net (Ready Speaker One Talk Studio). Check spam. If in spam: mark as not spam/trustworthy, wait a few seconds, then try the link. Still not working? Click off and back on the email in your inbox.";
+const EMAIL_FROM_NOTE = (
+  <>
+    From rso@superchico.net <span className="text-muted-foreground">(Ready Speaker One Talk Studio)</span>.
+    <br />
+    Check spam folder.
+  </>
+);
 
 // Capture hash type immediately - Supabase clears it when parsing, so we must read before any auth calls
 const getInitialHashType = () => {
@@ -242,7 +247,12 @@ export default function Auth() {
       if (!data.session) {
         toast({
           title: "Check your email",
-          description: `We've sent a confirmation email. ${EMAIL_FROM_NOTE}`,
+          description: (
+            <>
+              We've sent a confirmation email. {EMAIL_FROM_NOTE}
+            </>
+          ),
+          duration: 8000,
         });
       } else {
         // User created and logged in (email confirmation disabled)
@@ -255,7 +265,12 @@ export default function Auth() {
     } else {
       toast({
         title: "Sign up completed",
-        description: `Please check your email for a confirmation link. ${EMAIL_FROM_NOTE}`,
+        description: (
+          <>
+            Please check your email for a confirmation link. {EMAIL_FROM_NOTE}
+          </>
+        ),
+        duration: 8000,
       });
     }
     setLoading(false);
@@ -294,7 +309,12 @@ export default function Auth() {
     } else {
       toast({
         title: "Email sent",
-        description: `We've sent a new confirmation email. ${EMAIL_FROM_NOTE}`,
+        description: (
+          <>
+            We've sent a new confirmation email. {EMAIL_FROM_NOTE}
+          </>
+        ),
+        duration: 8000,
       });
     }
     setLoading(false);
@@ -353,7 +373,12 @@ export default function Auth() {
     } else {
       toast({
         title: "Check your email",
-        description: `We've sent a password reset link. ${EMAIL_FROM_NOTE}`,
+        description: (
+          <>
+            We've sent a password reset link. {EMAIL_FROM_NOTE}
+          </>
+        ),
+        duration: 8000,
       });
       setResetPasswordOpen(false);
       setResetEmail("");
@@ -587,7 +612,7 @@ export default function Auth() {
       {/* Footer */}
       <div className="mt-8 text-center animate-fade-in space-y-1" style={{ animationDelay: "0.2s" }}>
         <p className="text-sm text-muted-foreground">Ready to speak with confidence</p>
-        <p className="text-xs text-muted-foreground">Have any questions or concerns? Email us at rso@superchico.net</p>
+        <p className="text-xs text-muted-foreground">Have any questions/concerns? email rso@superchico.net</p>
       </div>
 
       {/* Password Reset Dialog */}
