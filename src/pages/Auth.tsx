@@ -585,9 +585,10 @@ export default function Auth() {
       </Card>
 
       {/* Footer */}
-      <p className="mt-8 text-sm text-muted-foreground text-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
-        Ready to speak with confidence
-      </p>
+      <div className="mt-8 text-center animate-fade-in space-y-1" style={{ animationDelay: "0.2s" }}>
+        <p className="text-sm text-muted-foreground">Ready to speak with confidence</p>
+        <p className="text-xs text-muted-foreground">Have any questions or concerns? Email us at rso@superchico.net</p>
+      </div>
 
       {/* Password Reset Dialog */}
       <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>

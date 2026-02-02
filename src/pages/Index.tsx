@@ -39,8 +39,9 @@ export default function Index() {
         </div>
       </main>
 
-      <footer className="container py-8 text-center text-sm text-muted-foreground">
-        Ready to speak with confidence
+      <footer className="container py-8 text-center space-y-1">
+        <p className="text-sm text-muted-foreground">Ready to speak with confidence</p>
+        <p className="text-xs text-muted-foreground">Have any questions/concerns? email rso@superchico.net</p>
       </footer>
     </div>
   );
