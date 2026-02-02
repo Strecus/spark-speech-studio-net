@@ -300,8 +300,42 @@ export default function Auth() {
     e.preventDefault();
     setResetLoading(true);
 
+    try {
+      const { data: statusData, error: statusError } = await supabase.rpc(
+        "get_email_registration_status",
+        { check_email: resetEmail }
+      );
+
+      if (!statusError && statusData && statusData.length > 0) {
+        const { email_exists, is_registered } = statusData[0];
+
+        if (!email_exists) {
+          toast({
+            title: "Account not found",
+            description: "No account found with this email address.",
+            variant: "destructive",
+          });
+          setResetLoading(false);
+          return;
+        }
+
+        if (!is_registered) {
+          toast({
+            title: "Verify your email first",
+            description:
+              "Please verify your email address before resetting your password. Check your inbox for the confirmation link we sent when you signed up.",
+            variant: "destructive",
+          });
+          setResetLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // If function fails, proceed with reset (fallback for backwards compatibility)
+    }
+
     const redirectUrl = `${window.location.origin}/auth`;
-    
+
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: redirectUrl,
     });
@@ -364,8 +398,9 @@ export default function Auth() {
       setShowPasswordUpdate(false);
       setNewPassword("");
       setConfirmPassword("");
-      // Clear the hash from URL
+      // Clear the hash from URL and reset recovery flag so next login goes to dashboard
       window.history.replaceState(null, "", window.location.pathname);
+      hashTypeRef.current = null;
       await supabase.auth.signOut();
     }
     setUpdatePasswordLoading(false);
