@@ -6,7 +6,7 @@ BEGIN
   RETURN QUERY
   SELECT 
     (p.id IS NOT NULL) AS email_exists,
-    COALESCE(p.registered, false) AS is_registered
+    COALESCE(p.regsitered, false) AS is_registered
   FROM (SELECT 1) dummy
   LEFT JOIN public.profiles p ON p.email = check_email
   LIMIT 1;

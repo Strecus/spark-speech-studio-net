@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
 
+// Email instructions shown in password reset and signup flows
+const EMAIL_FROM_NOTE =
+  "From rso@superchico.net (Ready Speaker One Talk Studio). Check spam. If in spam: mark as not spam/trustworthy, wait a few seconds, then try the link. Still not working? Click off and back on the email in your inbox.";
+
 // Capture hash type immediately - Supabase clears it when parsing, so we must read before any auth calls
 const getInitialHashType = () => {
   if (typeof window === "undefined") return null;
@@ -195,14 +199,14 @@ export default function Auth() {
         if (emailExists === true) {
           const { data: existingProfiles } = await supabase
             .from("profiles")
-            .select("id, registered")
+            .select("id, regsitered")
             .eq("email", email)
             .limit(1);
           
           if (existingProfiles && existingProfiles.length > 0) {
             const profile = existingProfiles[0];
             // If profile ID doesn't match OR profile is registered, it's a duplicate
-            if (profile.id !== data.user.id || profile.registered === true) {
+            if (profile.id !== data.user.id || profile.regsitered === true) {
               toast({
                 title: "Email already registered",
                 description: "An account with this email already exists. Please log in instead, or use the 'Forgot Password?' link to reset your password.",
@@ -238,7 +242,7 @@ export default function Auth() {
       if (!data.session) {
         toast({
           title: "Check your email",
-          description: "We've sent you a confirmation email. Please verify your email address before logging in. Check your spam folder if you don't see it.",
+          description: `We've sent a confirmation email. ${EMAIL_FROM_NOTE}`,
         });
       } else {
         // User created and logged in (email confirmation disabled)
@@ -251,7 +255,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Sign up completed",
-        description: "Please check your email for a confirmation link.",
+        description: `Please check your email for a confirmation link. ${EMAIL_FROM_NOTE}`,
       });
     }
     setLoading(false);
@@ -290,7 +294,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Email sent",
-        description: "We've sent you a new confirmation email. Please check your inbox (and spam folder).",
+        description: `We've sent a new confirmation email. ${EMAIL_FROM_NOTE}`,
       });
     }
     setLoading(false);
@@ -349,7 +353,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Check your email",
-        description: "We've sent you a password reset link. Please check your email inbox.",
+        description: `We've sent a password reset link. ${EMAIL_FROM_NOTE}`,
       });
       setResetPasswordOpen(false);
       setResetEmail("");
@@ -590,8 +594,11 @@ export default function Auth() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                <p>Enter your email and we'll send a reset link.</p>
+                <p className="text-xs">{EMAIL_FROM_NOTE}</p>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
